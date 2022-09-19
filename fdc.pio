@@ -1,0 +1,93 @@
+.program fdc
+.side_set 1 opt
+
+///////////////////////////////////////////////////////////
+// API documentions is located at
+// https://raspberrypi.github.io/pico-sdk-doxygen/
+///////////////////////////////////////////////////////////
+
+.wrap_target
+    set pins, 0     // release wait
+    set y, 31
+
+// wait for control lines to go inactive
+loop:
+    in pins, 5      // shift state of input pins into isr
+    in null, 27     // set remaining isr bits to zero
+    mov x, isr
+    jmp x!=y loop
+
+// turn bus around, supervising cpu places the direction mask in the tx fifo
+    pull block              // get direction mask
+    out pindirs, 17 side 1  // set pins direction
+
+// wait for a control line to be activated
+loop2:
+    in pins, 5      // shift state of input pins into isr
+    in null, 27     // set remaining isr bits to zero
+    mov x, isr
+    jmp x!=y testn
+    jmp loop2
+
+// test if it was just noise
+testn:
+    in pins, 5      // shift state of input pins into isr
+    in null, 27     // set remaining isr bits to zero
+    mov x, isr
+    jmp x!=y test1
+    jmp loop2
+
+// if DISKIN is low then set DIR low
+test1:
+    set pins, 1     // activate wait
+
+    set y, 15
+    jmp x!=y test2
+    nop side 0
+    jmp setwait
+
+// else if RDNMI is low then set DIR low
+test2:
+    set y, 29
+    jmp x!=y test3
+    nop side 0
+    jmp setwait
+
+// else set DIR high
+test3:
+    nop side 1
+
+// activate wait control
+setwait:
+    set pins, 1     // activate wait
+    irq wait 0      // trigger interrupt and wait for it to be serviced
+
+stall:
+    jmp stall
+.wrap
+
+% c-sdk {
+
+void fdc_program_init(PIO pio, uint sm, uint offset, uint wait_pin, uint drvsel_pin, uint dir_pin, pio_sm_config* pc) {
+    *pc = fdc_program_get_default_config(offset);
+
+    sm_config_set_in_pins(pc, drvsel_pin);          // first pin associated with the in instruction
+    sm_config_set_out_pins(pc, wait_pin, 1);        // first pin associated with the out instruction
+    sm_config_set_set_pins(pc, wait_pin, 1);        // first pin associated with the set instruction
+    sm_config_set_sideset_pins(pc, dir_pin);        // first pin associated with the side option
+
+    pio_sm_set_consecutive_pindirs(pio, sm, drvsel_pin, 5, false);  // specify the first and number of input pins
+    pio_sm_set_consecutive_pindirs(pio, sm, wait_pin, 1, true);     // specify the first and number of output pins
+
+    pio_gpio_init(pio, wait_pin);
+    pio_gpio_init(pio, dir_pin);
+    pio_gpio_init(pio, drvsel_pin);
+
+    uint32_t both_pins = (1u << wait_pin) | (1u << dir_pin);
+    pio_sm_set_pins_with_mask(pio, sm, both_pins, both_pins);
+    pio_sm_set_pindirs_with_mask(pio, sm, both_pins, both_pins);
+
+    pio_sm_init(pio, sm, offset, pc);
+}
+
+%}
