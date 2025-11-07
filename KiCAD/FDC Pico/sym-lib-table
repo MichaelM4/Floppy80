@@ -1,0 +1,8 @@
+(sym_lib_table
+  (lib (name MCU_Kinetis)(type Legacy)(uri D:/KiCAD/lib/MCU_Kinetis.lib)(options "")(descr ""))
+  (lib (name MCU_NXP_K40)(type Legacy)(uri D:/KiCAD/lib/MCU_NXP_K40.lib)(options "")(descr ""))
+  (lib (name TPD2E001DZDR)(type Legacy)(uri D:/KiCAD/lib/TPD2E001DZDR.lib)(options "")(descr ""))
+  (lib (name NC7ST02)(type Legacy)(uri D:/KiCAD/lib/NC7ST02.lib)(options "")(descr ""))
+  (lib (name MCU_PI_PICO)(type Legacy)(uri D:/KiCAD/lib/PiPico.lib)(options "")(descr ""))
+  (lib (name FDC-rescue)(type Legacy)(uri ${KIPRJMOD}/FDC-rescue.lib)(options "")(descr ""))
+)

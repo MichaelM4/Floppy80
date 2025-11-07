@@ -1,0 +1,37 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP MK20DN128VLF5
+D Kinetis K20 series, 50-MHz/32-bit ARM Cortex-M4, 128 kB flash, 16 kB SRAM, USB FS Device/OTG, LQFP-48
+K K20
+$ENDCMP
+#
+$CMP MK20DN64VLF5
+D Kinetis K20 series, 50-MHz/32-bit ARM Cortex-M4, 64 kB flash, 16 kB SRAM, USB FS Device/OTG, LQFP-48
+K K20
+$ENDCMP
+#
+$CMP MK20P100M100SF2V2
+D Kinetis KL46 series, 48-MHz/32-bit ARM Cortex-M0+, 256 kB flash, 32 kB SRAM, USB FS Device/OTG, Segment LCD, TSI, LQFP-100
+K Kinetis KL46 ARM Cortex M0+
+F http://www.nxp.com/docs/en/data-sheet/KL46P121M48SF4.pdf
+$ENDCMP
+#
+$CMP MK40P100M100SF2V2
+D Kinetis KL46 series, 48-MHz/32-bit ARM Cortex-M0+, 256 kB flash, 32 kB SRAM, USB FS Device/OTG, Segment LCD, TSI, LQFP-100
+K Kinetis KL46 ARM Cortex M0+
+F http://www.nxp.com/docs/en/data-sheet/KL46P121M48SF4.pdf
+$ENDCMP
+#
+$CMP MKL46Z128VLL4
+D Kinetis KL46 series, 48-MHz/32-bit ARM Cortex-M0+, 128 kB flash, 16 kB SRAM, USB FS Device/OTG, Segment LCD, TSI, LQFP-100
+K Kinetis KL46 ARM Cortex M0+
+F http://www.nxp.com/docs/en/data-sheet/KL46P121M48SF4.pdf
+$ENDCMP
+#
+$CMP MKL46Z128VLL4_copy
+D Kinetis KL46 series, 48-MHz/32-bit ARM Cortex-M0+, 128 kB flash, 16 kB SRAM, USB FS Device/OTG, Segment LCD, TSI, LQFP-100
+K Kinetis KL46 ARM Cortex M0+
+F http://www.nxp.com/docs/en/data-sheet/KL46P121M48SF4.pdf
+$ENDCMP
+#
+#End Doc Library
