@@ -127,9 +127,9 @@ BYTE sd_getfreespace(void)
 void IdentifySdCard(void)
 {
 	FRESULT fr;
-	FATFS   fs;
 	BYTE    nCD;
 	int     nRet;
+	char*   pszDrive = "0:";
 
 	nCD = get_cd();
 
@@ -154,7 +154,15 @@ void IdentifySdCard(void)
 				return;
 			}
 
-			fr = f_mount(&fs, "0:", 1);
+			/* Get volume information and free clusters of drive */
+			FATFS* pfs = sd_get_fs_by_name(pszDrive);
+
+			if (!pfs)
+			{
+				return;
+			}
+
+			fr = f_mount(pfs, "0:", 1);
 
 			if (fr == FR_OK)
 			{

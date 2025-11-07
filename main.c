@@ -14,7 +14,9 @@
 #include "fdc.h"
 #include "system.h"
 
-void RecordBusHistory(DWORD dwBus, BYTE byData);
+#if (ENABLE_TRACE_LOG == 1)
+	void RecordBusHistory(DWORD dwBus, BYTE byData);
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // API documentions is located at
@@ -58,7 +60,6 @@ uint32_t      g_nTimeNow;
 uint32_t      g_nPrevTime;
 
 //-----------------------------------------------------------------------------
-//void __not_in_flash_func(DetectHostSequnce)(BYTE byData)
 void DetectHostSequnce(BYTE byData)
 {
 	if ((g_FDC.nWrHostSequence < HOST_SEQUENCE_COUNT) && (g_byHostSequence[g_FDC.nWrHostSequence] == byData))
@@ -76,7 +77,7 @@ void DetectHostSequnce(BYTE byData)
 // restart pio code to release WAIT state
 void ReleaseWait(void)
 {
-	// push pin direction mask into tx fifo
+	// push pin direction mask into tx fifo (this way the pio state machine does not need to generate it)
 	pio_sm_put(g_pio, g_sm, ~GPIO_IN_MASK >> WAIT_PIN);
 
 	// restart the pio state machine at its first instruction (the address for which is g_offset)
@@ -267,7 +268,10 @@ void __not_in_flash_func(fdc_isr)(void)
 		}
 
 		gpio_put_masked(DATA_BUS_MASK, byData << D0_PIN);
-		RecordBusHistory(dwBus, byData);
+
+		#if (ENABLE_TRACE_LOG == 1)
+			RecordBusHistory(dwBus, byData);
+		#endif
 	}
 
 	if ((dwBus & RDNMI_MASK) == 0) // the RDNMI is low (read NMI latch from FDC), put data on bus
@@ -280,7 +284,10 @@ void __not_in_flash_func(fdc_isr)(void)
 		byData = g_FDC.byNmiStatusReg;
 
 		gpio_put_masked(DATA_BUS_MASK, byData << D0_PIN);
-		RecordBusHistory(dwBus, byData);
+
+		#if (ENABLE_TRACE_LOG == 1)
+			RecordBusHistory(dwBus, byData);
+		#endif
 	}
 	
 	if ((dwBus & DISKOUT_MASK) == 0) // DISKOUT (WRITE to FDC)
@@ -335,8 +342,6 @@ void __not_in_flash_func(fdc_isr)(void)
 					}
 				}
 
-//				GetCommandText(szBuf, g_FDC.byCommandReg);
-//				SendTraceText(szBuf);
 				break;
 
 			case 1: // address 0xF1/241, track register
@@ -356,7 +361,9 @@ void __not_in_flash_func(fdc_isr)(void)
 				break;
 		}
 
-		RecordBusHistory(dwBus, byData);
+		#if (ENABLE_TRACE_LOG == 1)
+			RecordBusHistory(dwBus, byData);
+		#endif
 	}
 
 	if ((dwBus & WRNMI_MASK) == 0) // WRNMI (WRITE to FDC)
@@ -374,7 +381,9 @@ void __not_in_flash_func(fdc_isr)(void)
 			g_FDC.stStatus.byIntrRequest = 0;
 		}
 
-		RecordBusHistory(dwBus, byData);
+		#if (ENABLE_TRACE_LOG == 1)
+			RecordBusHistory(dwBus, byData);
+		#endif
 	}
 
 	if ((dwBus & DRVSEL_MASK) == 0) // DRVSEL (WRITE to FDC)
@@ -411,9 +420,9 @@ void __not_in_flash_func(fdc_isr)(void)
 			gpio_put(RED_LED_PIN, 0);
 		}
 
-//		sprintf(szBuf, "WR DRVSEL 0x%02X", byData);
-//		SendTraceText(szBuf);
-		RecordBusHistory(dwBus, byData);
+		#if (ENABLE_TRACE_LOG == 1)
+			RecordBusHistory(dwBus, byData);
+		#endif
 	}
 
 	if (byReqCount > 1)
@@ -648,7 +657,6 @@ int main()
 	int i;
 
     stdio_init_all();
-//	set_sys_clock_48mhz();
 
     systick_hw->csr = 0x5;
     systick_hw->rvr = 0x00FFFFFF;
@@ -687,7 +695,10 @@ int main()
    	SDHC_Init();
     FileSystemInit();
  	FdcInit();
-	InitBusTrace();
+
+	#if (ENABLE_TRACE_LOG == 1)
+		InitBusTrace();
+	#endif
 
     gpio_put(WAIT_PIN, 0); // release wait
 	
@@ -696,10 +707,12 @@ int main()
 		UpdateCounters();
         FdcServiceStateMachine();
 
-		if (g_byFlushTraceBuffer)
-		{
-			FlushTraceBuffer();
-			g_byFlushTraceBuffer = 0;
-		}
+		#if (ENABLE_TRACE_LOG == 1)
+			if (g_byFlushTraceBuffer)
+			{
+				FlushTraceBuffer();
+				g_byFlushTraceBuffer = 0;
+			}
+		#endif
     }   
 }

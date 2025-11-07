@@ -4,6 +4,9 @@
 
 #include <stdio.h>
 
+// set to 1 to enable capture of bus activity logging to sd-card
+#define ENABLE_TRACE_LOG 0
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Bit - 31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14  13  12  11     10      9     8     7      6    5    4    3   2   1  0
 // Net -          A1 A0 CD          D7 D6 D5 D4 D3 D2 D1 D0 DIR NMI RST DISKIN DISKOUT WRNMI RDNMI DRVSEL WAIT DAT3 DAT0 CMD CLK OE TXD
@@ -58,38 +61,7 @@
 #define A0_PIN      27
 #define A1_PIN      28
 
-//#define RED_LED_MASK 1
-//#define OE_MASK      2
-//#define CLK_SCLK    4
-//#define CMD_MOSI    8
-//#define DAT0_MISO   10
-//#define DAT3_CS     20
-
-//#define WAIT_PIN    40
-//#define DRVSEL_PIN  80
-//#define RDNMI_PIN   100
-//#define WRNMI_PIN   200
-//#define DISKOUT_PIN 400
-//#define DISKIN_PIN  800
-
-//#define RESET_PIN   1000
-//#define NMI_PIN     2000
 #define DIR_PIN_MASK  0x4000
-
-//#define D0_PIN      0x8000
-//#define D1_PIN      0x10000
-//#define D2_PIN      0x20000
-//#define D3_PIN      0x40000
-//#define D4_PIN      0x80000
-//#define D5_PIN      0x100000
-//#define D6_PIN      0x200000
-//#define D7_PIN      0x400000
-
-//#define CD_PIN      0x800000
-
-//#define A0_PIN      0x1000000
-//#define A1_PIN      0x2000000
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -30,7 +30,8 @@
         "xosc.h": "c",
         "time.h": "c",
         "clocks.h": "c",
-        "intctrl.h": "c"
+        "intctrl.h": "c",
+        "file.h": "c"
     },
     "cortex-debug.variableUseNaturalFormat": false
 }

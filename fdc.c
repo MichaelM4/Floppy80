@@ -106,10 +106,9 @@ data each have CRCs, this is just like on a real disk.
 */
 ////////////////////////////////////////////////////////////////////////////////////
 
-extern file*    g_fTraceFile;
-extern BYTE     g_byCaptureAll;
+extern file* g_fTraceFile;
 
-char* g_pszVersion = {"1.0.9"};
+char* g_pszVersion = {"1.1.0"};
 
 FdcType    g_FDC;
 DriveType  g_dtDives[MAX_DRIVES];
@@ -131,8 +130,8 @@ char     g_szFindFilter[80];
 #define FIND_MAX_SIZE 100
 
 FILINFO g_fiFindResults[FIND_MAX_SIZE];
-int  g_nFindIndex;
-int  g_nFindCount;
+int     g_nFindIndex;
+int     g_nFindCount;
 
 ////////////////////////////////////////////////////////////////////////////////////
 void FdcProcessConfigEntry(char szLabel[], char* psz)
@@ -734,40 +733,8 @@ void FdcReadHfeSector(int nDriveSel, int nSide, int nTrack, int nSector)
 	// g_FDC.byTrackData[nSide][g_FDC.nTrackSectorOffset+2] side number		 (should be the same as the nSide parameter)
 	// g_FDC.byTrackData[nSide][g_FDC.nTrackSectorOffset+3] sector number    (should be the same as the nSector parameter)
 	// g_FDC.byTrackData[nSide][g_FDC.nTrackSectorOffset+4] byte length (log 2, minus seven), 0 => 128 bytes; 1 => 256 bytes; etc.
-
-//	g_dtDives[nDrive].dmk.nSectorSize = 128 << *(pby+4);
-
-	// g_FDC.byTrackData[g_FDC.nSectorOffset+5..6] CRC (calculation starts with the three 0xA1/0xF5 bytes preceeding the 0xFE)
+	// g_FDC.byTrackData[nSide][g_FDC.nSectorOffset+5..6] CRC (calculation starts with the three 0xA1/0xF5 bytes preceeding the 0xFE)
 	g_FDC.stStatus.byCrcError = 0;
-
-//	if (g_tdTrack.dmk.nSectorIDAM[nSector] <= 0)
-//	{
-//		g_FDC.stStatus.byRecordType = 0;
-//		g_tdTrack.dmk.nSectorDataOffset = 0; // then there is a problem and we will let the Z80 deal with it
-//		g_FDC.stStatus.byNotFound   = 1;
-//		return;
-//	}
-
-//	wCRC16 = Calculate_CRC_CCITT(pby-3, 8);
-	
-//	if (wCRC16 != ((g_tdTrack.dmk.byTrackData[g_tdTrack.dmk.nSectorIDAM[nSector]+5] << 8) + g_tdTrack.dmk.byTrackData[g_tdTrack.dmk.nSectorIDAM[nSector]+6]))
-//	{
-//		g_FDC.stStatus.byCrcError = 1;
-//	}
-	
-//	nDataOffset = g_tdTrack.dmk.nSectorData[nSector];	// offset to first bytes of the sector data mark sequence (0xA1, 0xA1, 0xA1, 0xFB/0xF8)
-														//  - 0xFB (regular data); or
-														//  - 0xF8 (deleted data)
-														// actual data starts after the 0xFB/0xF8 byte
-//	if (nDataOffset < 0)
-//	{
-//		g_FDC.stStatus.byRecordType = 0;
-//		g_tdTrack.dmk.nSectorDataOffset = 0; // then there is a problem and we will let the Z80 deal with it
-//		g_FDC.stStatus.byNotFound   = 1;
-//		return;
-//	}
-
-	// nDataOffset is the index of the first 0xA1 byte in the 0xA1, 0xA1, 0xA1, 0xFB/0xF8 sequence
 
 	i = FindSectorIndex(nSector, &g_tdTrack);
 
@@ -776,14 +743,6 @@ void FdcReadHfeSector(int nDriveSel, int nSide, int nTrack, int nSector)
 	g_stSector.nSectorSize       = 128 << g_tdTrack.byTrackData[g_tdTrack.nSectorIDAM[i] + 7];
 	g_FDC.stStatus.byNotFound    = 0;
 	g_FDC.stStatus.byRecordType  = 0xFB;	// will get set to g_FDC.byRecordMark after a few status reads
-
-	// perform a CRC on the sector data (including preceeding 4 bytes) and validate
-//	wCRC16 = Calculate_CRC_CCITT(&g_tdTrack.dmk.byTrackData[nDataOffset], g_dtDives[nDrive].dmk.nSectorSize+4);
-
-//	if (wCRC16 != ((g_tdTrack.dmk.byTrackData[nDataOffset+g_dtDives[nDrive].dmk.nSectorSize+4] << 8) + g_tdTrack.dmk.byTrackData[nDataOffset+g_dtDives[nDrive].dmk.nSectorSize+5]))
-//	{
-//		g_FDC.stStatus.byCrcError = 1;
-//	}	
 }
 
 //-----------------------------------------------------------------------------
@@ -1388,6 +1347,13 @@ void FdcProcessStepOutCommand(void)
 		g_FDC.byTrack = byData;
 	}
 
+	nDrive = FdcGetDriveIndex(g_FDC.byDriveSel);
+	
+	if (nDrive != g_tdTrack.nDrive)
+	{
+		g_tdTrack.nDrive = -1;
+	}
+
 	nStepRate   = GetStepRate(g_FDC.byCommandReg);
 	g_nWaitTime = time_us_64() + (nStepRate * 1000);
 
@@ -1417,11 +1383,6 @@ void FdcProcessReadSectorCommand(void)
 	if ((g_FDC.byDriveSel & 0x10) != 0)
 	{
 		nSide = 1;
-	}
-
-	if (g_byCaptureAll)
-	{
-		g_byCaptureAll = 1;
 	}
 
 	FdcReadSector(g_FDC.byDriveSel, nSide, g_FDC.byTrack, g_FDC.bySector);
@@ -1528,6 +1489,16 @@ void FdcProcessReadAddressCommand(void)
 	g_tdTrack.nReadSize  = 6;
 	g_tdTrack.nReadCount = 6;
 
+	g_FDC.nReadStatusCount       = 0;
+	g_FDC.dwStateCounter         = 1000;
+	g_FDC.stStatus.byDataRequest = 0;
+
+	// number of byte to be transfered to the computer before
+	// setting the Data Address Mark status bit (1 if Deleted Data)
+	g_FDC.nProcessFunction  = psReadSector;
+	g_FDC.nServiceState     = 0;
+	g_FDC.nDataRegReadCount = 0;
+
 	// Note: CRC should be checked during transfer to the computer
 
 }
@@ -1594,7 +1565,6 @@ void FdcProcessWriteTrackCommand(void)
 //-----------------------------------------------------------------------------
 void FdcProcessReadStatus(void)
 {
-//	CodedDateTime pdt;
 	char szBuf[64];
 	int  i;
 	
@@ -1612,11 +1582,6 @@ void FdcProcessReadStatus(void)
 	strcpy((char*)(g_FDC.byTransferBuffer+1), "Pico FDC Version ");
 	strcat((char*)(g_FDC.byTransferBuffer+1), g_pszVersion);
 	strcat((char*)(g_FDC.byTransferBuffer+1), "\r");
-
-//	CodeDateTime(g_dwForegroundRtc, &pdt);
-//	sprintf(szBuf, "%02d/%02d/%02d %02d:%02d:%02d\r", pdt.month+1, pdt.day+1, (pdt.year+1980) % 100, pdt.hour, pdt.min, pdt.sec);
-//	strcat((char*)(g_FDC.g_byTransferBuffer+1), szBuf);
-
 	strcat((char*)(g_FDC.byTransferBuffer+1), "BootIni=");
 	strcat((char*)(g_FDC.byTransferBuffer+1), g_szBootConfig);
 	strcat((char*)(g_FDC.byTransferBuffer+1), "\r");
@@ -2057,22 +2022,12 @@ void FdcServiceReadSector(void)
 			break;
 
 		case 1: // wait for some nyumber of status reads before moving on
-//			if (g_FDC.nReadStatusCount < 10)
-//			{
-//				break;
-//			}
-
 			g_FDC.stStatus.byRecordType = g_FDC.byRecordMark;
 			g_FDC.nReadStatusCount      = 0;
 			++g_FDC.nServiceState;
 			break;
 
 		case 2: // wait for 5 reads with the record mark provide in the read
-//			if (g_FDC.nReadStatusCount < 5)
-//			{
-//				break;
-//			}
-
 			++g_FDC.nServiceState;
 			g_FDC.dwStateCounter = 100;
 			break;
@@ -2907,7 +2862,6 @@ void FdcServiceStateMachine(void)
 	{
 		FdcCloseAllFiles();
 		system_reset();
-//	 	FdcInit();
 		return;
 	}
 

@@ -9,8 +9,12 @@
 #include "system.h"
 #include "fdc.h"
 
+#if (ENABLE_TRACE_LOG == 1)
+
 BYTE FdcGetCommandType(BYTE byCommand);
 void InitTraceCapture(void);
+
+extern BYTE g_byFlushTraceBuffer;
 
 ////////////////////////////////////////////////////////////////////////////////////
 
@@ -53,7 +57,7 @@ void InitBusTrace(void)
 	g_byCaptureAll          = 0;
 	g_byCaptureBusActivity  = 0;
 
-    InitTraceCapture();
+	InitTraceCapture();
 }
 
 //----------------------------------------------------------------------------
@@ -554,6 +558,11 @@ void RecordBusHistory(DWORD dwBus, BYTE byData)
 			g_btBusTrace[g_nBusTraceIndex] = g_btBus;
 			++g_nBusTraceIndex;
 		}
+		else
+		{
+		 	g_byFlushTraceBuffer = 1;
+			g_byCaptureBusActivity = 0;
+		}
 
 		if (nFormat == 1)
 		{
@@ -603,3 +612,5 @@ void FlushTraceBuffer(void)
 
 	FileClose(g_fTraceFile);
 }
+
+#endif

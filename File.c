@@ -200,8 +200,8 @@ int FileReadLine(file* fp, char szLine[], int nMaxLen)
 BYTE FileExists(char* pszFileName)
 {
     FRESULT fr;  /* Return value */
-	DIR     dj;  /* Directory object */
-	FILINFO fno; /* File information */
+    DIR     dj;  /* Directory object */
+    FILINFO fno; /* File information */
 	
     memset(&dj, 0, sizeof(dj));
     memset(&fno, 0, sizeof(fno));
@@ -209,23 +209,23 @@ BYTE FileExists(char* pszFileName)
     fr = f_findfirst(&dj, &fno, "0:", "*");
 
     if (FR_OK != fr)
-	{
+    {
         return FALSE;
     }
 
     while ((fr == FR_OK) && (fno.fname[0] != 0)) /* Repeat until a file is found */
-	{
+    {
         if ((fno.fattrib & AM_DIR) || (fno.fattrib & AM_SYS))
 		{
 			// pcAttrib = pcDirectory;
-        }
+		}
 		else if (stricmp(fno.fname, pszFileName) == 0)
 		{
-            return TRUE;
+				return TRUE;
 		}
 
         fr = f_findnext(&dj, &fno); /* Search for next item */
     }
 
-	return FALSE;
+    return FALSE;
 }
