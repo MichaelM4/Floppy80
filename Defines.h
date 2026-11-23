@@ -194,6 +194,7 @@ void ReleaseWait(void);
 
 DWORD CalcDuration(DWORD dwEndCount, DWORD dwStartCount);
 void  InitBusTrace(void);
+void  ServiceTraceBuffer(void);
 void  FlushTraceBuffer(void);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

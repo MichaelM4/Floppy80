@@ -7,12 +7,14 @@
 #include "hardware/regs/intctrl.h"
 #include "hardware/clocks.h"
 #include "hardware/structs/systick.h"
+#include "hardware/watchdog.h"
 
 #include "fdc.pio.h"
 #include "Defines.h"
 #include "sd_core.h"
 #include "fdc.h"
 #include "system.h"
+#include "file.h"
 
 #if (ENABLE_TRACE_LOG == 1)
 	void RecordBusHistory(DWORD dwBus, BYTE byData);
@@ -58,6 +60,14 @@ BYTE          g_byFlushTraceBuffer;
 
 uint32_t      g_nTimeNow;
 uint32_t      g_nPrevTime;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void __not_in_flash_func(reset_system)(void)
+{
+    watchdog_enable(10, 0);
+    watchdog_reboot(0, SRAM_END, 0);
+	while(1);
+}
 
 //-----------------------------------------------------------------------------
 void DetectHostSequnce(BYTE byData)
@@ -186,7 +196,6 @@ void __not_in_flash_func(fdc_isr)(void)
 	BYTE  byData;
 	BYTE  byReleaseWait;
 	BYTE  byReqCount;
-	char  szBuf[128];
 
 	dwBus  = gpio_get_all();
 	byData = (dwBus >> D0_PIN) & 0xFF;
@@ -708,6 +717,8 @@ int main()
         FdcServiceStateMachine();
 
 		#if (ENABLE_TRACE_LOG == 1)
+			ServiceTraceBuffer();
+
 			if (g_byFlushTraceBuffer)
 			{
 				FlushTraceBuffer();
