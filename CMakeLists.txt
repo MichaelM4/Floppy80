@@ -30,6 +30,9 @@ include(pico_sdk_import.cmake)
 
 project(Floppy80 C CXX ASM)
 
+# set(CMAKE_BUILD_TYPE Debug)
+# set(PICO_DEOPTIMIZED_DEBUG 1)
+
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
@@ -62,6 +65,17 @@ target_link_libraries(Floppy80
     hardware_pio
     hardware_irq
     FatFs_SPI
+)
+
+# target_compile_definitions(Floppy80 PRIVATE
+#     PICO_STACK_SIZE=0x1000        # Sets Core 0 stack to 4 KB (default is 0x800)
+#     # PICO_CORE1_STACK_SIZE=0x1000  # Sets Core 1 stack to 4 KB (if using multicore)
+# )
+
+target_compile_options(Floppy80 PRIVATE -O0)
+
+target_compile_definitions(Floppy80 PRIVATE
+    PICO_USE_STACK_GUARDS=1
 )
 
 # Modify the below lines to enable/disable output over UART/USB
