@@ -36,7 +36,7 @@ BYTE  g_byCaptureBusActivity;
 
 file* g_fTraceFile;
 
-#define BUS_TRACE_SIZE (1024*16)
+#define BUS_TRACE_SIZE (1024*4)
 
 FDC_BusType g_btBusTrace[BUS_TRACE_SIZE];
 int g_nBusTraceIndex;
@@ -55,7 +55,7 @@ void InitBusTrace(void)
 	g_nSectorReadByteCount  = 0;
 	g_byForceInterruptCount = 0;
 	g_byCaptureAll          = 0;
-	g_byCaptureBusActivity  = 0;
+	g_byCaptureBusActivity  = 1;
 
 	InitTraceCapture();
 }
@@ -251,14 +251,28 @@ void StrCatDesc(char* psz, FDC_BusType* pEntry)
 			case 3:
 				if (pEntry->Bus.b.DATA < 32)
 				{
-					sprintf(szBuf, "RD Data: 0x%02X - . (%d)", pEntry->Bus.b.DATA, g_nSectorReadByteCount);
+					if (pEntry->Bus.b.Count > 1)
+					{
+						sprintf(szBuf, "RD Data: 0x%02X - . (%d+%d)", pEntry->Bus.b.DATA, g_nSectorReadByteCount, pEntry->Bus.b.Count);
+					}
+					else
+					{
+						sprintf(szBuf, "RD Data: 0x%02X - . (%d)", pEntry->Bus.b.DATA, g_nSectorReadByteCount);
+					}
 				}
 				else
 				{
-					sprintf(szBuf, "RD Data: 0x%02X - %c (%d)", pEntry->Bus.b.DATA, pEntry->Bus.b.DATA, g_nSectorReadByteCount);
+					if (pEntry->Bus.b.Count > 1)
+					{
+						sprintf(szBuf, "RD Data: 0x%02X - %c (%d+%d)", pEntry->Bus.b.DATA, pEntry->Bus.b.DATA, g_nSectorReadByteCount, pEntry->Bus.b.Count);
+					}
+					else
+					{
+						sprintf(szBuf, "RD Data: 0x%02X - %c (%d)", pEntry->Bus.b.DATA, pEntry->Bus.b.DATA, g_nSectorReadByteCount);
+					}
 				}
 				
-				++g_nSectorReadByteCount;
+				g_nSectorReadByteCount += pEntry->Bus.b.Count;
 				strcat(psz, szBuf);
 				break;
 		}
@@ -447,7 +461,7 @@ BYTE TraceIgnore(DWORD dwBus)
 		switch (pEntry->Bus.b.A0 | (pEntry->Bus.b.A1 << 1))
 		{
 			case 0: // RD Status:
-//				return FALSE;
+				return FALSE;
 				break;
 
 			case 1: // RD Track:
@@ -457,6 +471,7 @@ BYTE TraceIgnore(DWORD dwBus)
 				break;
 
 			case 3: // RD Data:
+				return FALSE;
 				break;
 		}
 	}
@@ -467,10 +482,12 @@ BYTE TraceIgnore(DWORD dwBus)
 			case 0: // WR Command:
 				if ((pEntry->Bus.b.DATA & 0xF0) == 0x80) // 1000xxxx - CMD: RSEC:
 				{
-					if ((g_FDC.byTrack == 0x12) && (g_FDC.bySector == 0x02))
-					{
-						g_byCaptureAll = 1;
-					}
+					// g_byCaptureAll = 1;
+
+					// if ((g_FDC.byTrack == 0x12) && (g_FDC.bySector == 0x02))
+					// {
+					// 	g_byCaptureAll = 1;
+					// }
 				}
 
 				return FALSE;
@@ -583,6 +600,27 @@ void RecordBusHistory(DWORD dwBus, BYTE byData)
 	else
 	{
 		++g_nBusCount;
+	}
+}
+
+void ServiceTraceBuffer(void)
+{
+	static int i = 0;
+	static int output_header = 1;
+	char szBuf[512];
+
+	if (output_header)
+	{
+		GetTraceHeader(szBuf);
+		printf("%s", szBuf);
+		output_header = 0;
+	}
+
+	while (i < g_nBusTraceIndex)
+	{
+		DecodeBusData(&g_btBusTrace[i], szBuf, 0);
+		printf("%d - %s", i, szBuf);
+		++i;
 	}
 }
 
