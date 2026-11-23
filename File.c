@@ -28,6 +28,21 @@ void FileSystemInit(void)
 }
 
 //-----------------------------------------------------------------------------
+void FileCloseAll(void)
+{
+	int i;
+
+	for (i = 0; i < MAX_FILES; ++i)
+	{
+		if (g_fFiles[i].byIsOpen)
+		{
+			f_close(&g_fFiles[i].f);
+			g_fFiles[i].byIsOpen = FALSE;
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
 file* FileOpen(char* pszFileName, BYTE byMode)
 {
 	FRESULT fr;

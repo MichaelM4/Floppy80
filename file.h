@@ -16,6 +16,7 @@ typedef struct {
 
 //-----------------------------------------------------------------------------
 void   FileSystemInit(void);
+void   FileCloseAll(void);
 file*  FileOpen(char* pszFileName, BYTE byMode);
 void   FileClose(file* fp);
 BYTE   FileIsOpen(file *fp);
