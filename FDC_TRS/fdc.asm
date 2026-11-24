@@ -79,6 +79,8 @@ gotid1:	ld	hl,parm1
 	ld	de,INIstr
 	call	striequ
 	jr	nz,gotid2
+	ld	a,1
+	ld	(hidedsel),a
 	ld	a,FINDINI_CMD	; find .ini files
 	ld	(opcode),a
 	jp	getlist
@@ -669,7 +671,6 @@ format:
 	call	writedata	; hl - points to the data to be written
 				; b  - contains the number of bytes to be written
 	ret
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; build the mount command string from the contents of parm1 and parm2
