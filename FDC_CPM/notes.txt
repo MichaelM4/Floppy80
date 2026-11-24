@@ -1,18 +1,14 @@
 To copy fdc.c to drive d: (cpm-work2.dmk)
 
-1. Run Model4.bat
+1. Model4.bat
 2. era d:fdc.c
 3. Close trs80gp
-4. Run import.bat
+4. import.bat
 
 Build process:
 
-1. Run Model4.bat
+1. Model4.bat
+2. b:
+3. c d:fdc.c
 
-2. switch to drive b
-
-   b:
-      
-3. Run the compilier
-
-   c d:fdc.c
+The compiler com file will be on drive b with the name fdc.com
