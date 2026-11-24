@@ -1,0 +1,18 @@
+To copy fdc.c to drive d: (cpm-work2.dmk)
+
+1. Run Model4.bat
+2. era d:fdc.c
+3. Close trs80gp
+4. Run import.bat
+
+Build process:
+
+1. Run Model4.bat
+
+2. switch to drive b
+
+   b:
+      
+3. Run the compilier
+
+   c d:fdc.c
