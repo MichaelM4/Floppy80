@@ -1649,7 +1649,7 @@ int FdcFileListCmp(const void * a, const void * b)
 }
 
 //-----------------------------------------------------------------------------
-void FdcProcessFindFirst(char* pszFilter)
+void FdcProcessFindFirst(char* pszFilter, char* pszFolder)
 {
     FRESULT fr;  // Return value
 	
@@ -1667,7 +1667,7 @@ void FdcProcessFindFirst(char* pszFilter)
 
 	strcpy(g_szFindFilter, pszFilter);
 
-    fr = f_findfirst(&g_dj, &g_fno, "0:", "*");
+    fr = f_findfirst(&g_dj, &g_fno, pszFolder, "*");
 
     if (FR_OK != fr)
 	{
@@ -1779,6 +1779,21 @@ void FdcProcessMount(void)
 	// Note: computer now writes the data register for each of the command data bytes.
 	//
 	//       Actual data transfer is handled in the FdcServiceMountImage() function.
+
+}
+
+//-----------------------------------------------------------------------------
+void FdcProcessFormat(void)
+{
+	g_FDC.byCommandType          = 2;
+	g_FDC.nReadStatusCount       = 0;
+	g_FDC.stStatus.byDataRequest = 0;
+	g_FDC.nProcessFunction       = psFormatDrive;
+	g_FDC.nServiceState          = 0;
+
+	// Note: computer now writes the data register for each of the command data bytes.
+	//
+	//       Actual data transfer is handled in the FdcServiceFormatDrive function.
 
 }
 
@@ -1901,7 +1916,7 @@ void FdcProcessCommand(void)
 				break;
 			
 			case 2: // find first file
-				FdcProcessFindFirst("*");
+				FdcProcessFindFirst("*", "0:");
 				break;
 			
 			case 3: // find next file
@@ -1936,16 +1951,24 @@ void FdcProcessCommand(void)
 				FdcProcessGetTime();
 				break;
 
+			case 11: // setup for format request
+				FdcProcessFormat();
+				break;
+			
 			case 0x80:
-				FdcProcessFindFirst(".INI");
+				FdcProcessFindFirst(".INI", "0:");
 				break;
 
 			case 0x81:
-				FdcProcessFindFirst(".DMK");
+				FdcProcessFindFirst(".DMK", "0:");
 				break;
 
 			case 0x82:
-				FdcProcessFindFirst(".HFE");
+				FdcProcessFindFirst(".HFE", "0:");
+				break;
+
+			case 0x83:
+				FdcProcessFindFirst(".DMK", "0:\\FMT");
 				break;
 		}
 		
@@ -2583,6 +2606,147 @@ void FdcServiceMountImage(void)
 }
 
 //-----------------------------------------------------------------------------
+void FdcServiceFormatDrive(void)
+{
+	static int nIndex;
+	static int nSize;
+	file* f;
+	char* psz;
+	char  buf[256];
+	int   nDrive, size, read;
+
+	switch (g_FDC.nServiceState)
+	{
+		case 0:
+			g_FDC.dwStateCounter         = 100000;
+			g_FDC.stStatus.byDataRequest = 1;
+			g_FDC.stStatus.byBusy        = 0;
+			++g_FDC.nServiceState;
+			break;
+
+		case 1: // first byte received is the size of the data to be received
+			if (g_FDC.dwStateCounter == 0) // don't wait forever
+			{
+				g_FDC.nProcessFunction = psIdle;
+				break;
+			}
+
+			if (g_FDC.stStatus.byDataRequest != 0)
+			{
+				break;
+			}
+			
+			nSize  = g_FDC.byData;
+			nIndex = 0;
+			
+			g_FDC.dwStateCounter         = 100000;
+			g_FDC.stStatus.byDataRequest = 1;
+			g_FDC.stStatus.byBusy        = 0;
+			++g_FDC.nServiceState;
+			break;
+
+		case 2: // now request each data byte
+			if (g_FDC.dwStateCounter == 0) // don't wait forever
+			{
+				g_FDC.nProcessFunction = psIdle;
+				break;
+			}
+
+			if (g_FDC.stStatus.byDataRequest != 0)
+			{
+				break;
+			}
+			
+			g_FDC.byTransferBuffer[nIndex] = g_FDC.byData;
+			++nIndex;
+			
+			if (nIndex < nSize) // request next byte
+			{
+				g_FDC.stStatus.byDataRequest = 1;
+			}
+			else // mount specified imgae onto specified drive
+			{
+				g_FDC.nProcessFunction = psIdle;
+				
+				// locate the drive number
+				psz = SkipBlanks((char*)g_FDC.byTransferBuffer);
+
+				if (!isdigit(*psz)) // Drive number not specified
+				{
+					return;
+				}
+
+				nDrive = atoi(psz);
+
+				// validate drive number
+				if ((nDrive < 0) || (nDrive > (sizeof(g_dtDives)/sizeof(g_dtDives[0]))))
+				{
+					return;
+				}
+
+				if (g_dtDives[nDrive].f == NULL) // Drive must be mounted to be formated
+				{
+					return;
+				}
+
+				psz = SkipToBlank(psz);
+				psz = SkipBlanks(psz);
+
+				strcpy(buf, "0:\\FMT\\");
+				strcat(buf, psz);
+
+				if (FR_OK != f_stat(buf, &g_fno)) // Unable to formatted disk image
+				{
+					return;
+				}
+
+				f = FileOpen(buf, FA_READ);
+
+				if (f == NULL) // Unable to open file
+				{
+					return;
+				}
+
+				FileClose(g_dtDives[nDrive].f);
+				g_dtDives[nDrive].f = NULL;
+
+				g_dtDives[nDrive].f = FileOpen(g_dtDives[nDrive].szFileName, FA_WRITE | FA_CREATE_ALWAYS);
+
+				if (g_dtDives[nDrive].f == NULL) // Unable to create new DMK disk image
+				{
+					return;
+				}
+
+				size = g_fno.fsize;
+
+				while (size > 0)
+				{
+					read = sizeof(g_tdTrack.byTrackData);
+
+					if (read > size)
+					{
+						read = size;
+					}
+
+					FileRead(f, g_tdTrack.byTrackData, read);
+					FileWrite(g_dtDives[nDrive].f, g_tdTrack.byTrackData, read);
+					size -= read;
+				}
+
+				FileClose(f);
+				FileClose(g_dtDives[nDrive].f);
+				g_dtDives[nDrive].f = NULL;
+
+				FdcMountDrive(nDrive);
+			}
+			
+			g_FDC.dwStateCounter  = 100000;
+			g_FDC.stStatus.byBusy = 0;
+			break;
+	}
+}
+
+//-----------------------------------------------------------------------------
 void FdcServiceOpenFile(void)
 {
 	static int nIndex;
@@ -2923,6 +3087,10 @@ void FdcServiceStateMachine(void)
 		
 		case psSetTime:
 			FdcServiceSetTime();
+			break;
+
+		case psFormatDrive:
+			FdcServiceFormatDrive();
 			break;
 	}
 }

@@ -97,6 +97,7 @@ enum {
 	psOpenFile,
 	psWriteFile,
 	psSetTime,
+	psFormatDrive,
 };
 
 enum {
